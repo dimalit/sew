@@ -17,10 +17,11 @@ class TransactionWidget(QGroupBox):
         self.total_edit = QLineEdit()
         
         self.addresses_layout = QHBoxLayout()
+        self.addresses_layout.addWidget(QLabel("From:"))
         self.addresses_layout.addWidget(self.from_edit)
-        self.addresses_layout.addWidget(QLabel("->"))
+        self.addresses_layout.addWidget(QLabel("To:"))
         self.addresses_layout.addWidget(self.to_edit)
-        self.addresses_layout.addWidget(QLabel(":"))
+        self.addresses_layout.addWidget(QLabel("Value:"))
         self.addresses_layout.addWidget(self.value_edit)
         self.addresses_layout.addWidget(QLabel("ETH"))
                 
