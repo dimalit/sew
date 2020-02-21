@@ -53,7 +53,20 @@ class NetworkWidget(QGroupBox):
         self.layout.addWidget(QLabel("Current Block:"), 2, 0)
         self.layout.addWidget(self.block_no_edit, 2, 1)
                 
-        self.setLayout(self.layout)        
+        self.setLayout(self.layout)
+        
+    def set_model(self, model):
+        #TODO assert("model" not in self)
+        self.model = model
+        model.on_connection_change.connect(self.on_connection_change)
+        model.on_update.connect(self.on_update)
+        
+    def on_connection_change(self):
+        self.endpoint_url_edit.setText(self.model.endpoint_url)
+        self.chain_id_edit.setText(str(self.model.chain_id))
+    
+    def on_update(self):
+        self.block_no_edit.setText(str(self.model.block_number))
 
 class AccountWidget(QGroupBox):
     def __init__(self, title = "", parent = None):
