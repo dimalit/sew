@@ -34,6 +34,24 @@ class ApplyEditButton(QPushButton):
         if self.state == self.Edit:
             self.setText(self.edit_text)
 
+class NetworkWidget(QGroupBox):
+    def __init__(self, title = "", parent = None):
+        QGroupBox.__init__(self, parent)
+        
+        self.setTitle(title or "Network:")
+        
+        self.layout = QGridLayout()
+        
+        self.endpoint_url_edit = QLineEdit()
+        self.chain_id_edit = QLineEdit()
+        
+        self.layout.addWidget(QLabel("Endpoint URL:"), 0, 0)
+        self.layout.addWidget(self.endpoint_url_edit, 0, 1)
+        self.layout.addWidget(QLabel("ChainID:"), 1, 0)
+        self.layout.addWidget(self.chain_id_edit, 1, 1)
+                
+        self.setLayout(self.layout)        
+
 class AccountWidget(QGroupBox):
     def __init__(self, title = "", parent = None):
         QGroupBox.__init__(self, parent)
@@ -144,17 +162,21 @@ class WalletWidget(QWidget):
         
         self.layout = QGridLayout()
         
+        self.network_apply_edit_button = ApplyEditButton("Connect", "Change")
         self.account_apply_edit_button = ApplyEditButton("Apply", "Change")
         self.transaction_apply_edit_button = ApplyEditButton("Sign && Send", "Change")
 
+        self.network_widget      = NetworkWidget()
         self.account_widget     = AccountWidget()
         self.transaction_widget = TransactionWidget("Pending Transaction:")
         self.receipt_widget     = ReceiptWidget()
         
-        self.layout.addWidget(self.account_widget, 0, 0)
-        self.layout.addWidget(self.account_apply_edit_button, 0, 1)
-        self.layout.addWidget(self.transaction_widget, 1, 0)
-        self.layout.addWidget(self.transaction_apply_edit_button, 1, 1)
-        self.layout.addWidget(self.receipt_widget, 2, 0)
+        self.layout.addWidget(self.network_widget, 0, 0)
+        self.layout.addWidget(self.network_apply_edit_button, 0, 1)
+        self.layout.addWidget(self.account_widget, 1, 0)
+        self.layout.addWidget(self.account_apply_edit_button, 1, 1)
+        self.layout.addWidget(self.transaction_widget, 2, 0)
+        self.layout.addWidget(self.transaction_apply_edit_button, 2, 1)
+        self.layout.addWidget(self.receipt_widget, 3, 0)
         
         self.setLayout(self.layout)
