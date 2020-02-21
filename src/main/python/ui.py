@@ -44,11 +44,14 @@ class NetworkWidget(QGroupBox):
         
         self.endpoint_url_edit = QLineEdit()
         self.chain_id_edit = QLineEdit()
+        self.block_no_edit = QLineEdit()
         
         self.layout.addWidget(QLabel("Endpoint URL:"), 0, 0)
         self.layout.addWidget(self.endpoint_url_edit, 0, 1)
         self.layout.addWidget(QLabel("ChainID:"), 1, 0)
         self.layout.addWidget(self.chain_id_edit, 1, 1)
+        self.layout.addWidget(QLabel("Current Block:"), 2, 0)
+        self.layout.addWidget(self.block_no_edit, 2, 1)
                 
         self.setLayout(self.layout)        
 
