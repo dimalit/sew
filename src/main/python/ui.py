@@ -77,11 +77,16 @@ class NetworkWidget(QGroupBox):
         self.endpoint_url_edit.setReadOnly(self.model.connected)
         if self.model.connected:
             self.endpoint_url_edit.setText(self.model.endpoint_url)
-            self.chain_id_edit.setText(str(self.model.chain_id))            
+            self.chain_id_edit.setText(str(self.model.chain_id))
+            self.chain_id_edit.setEnabled(True)
+            self.block_no_edit.setEnabled(True)
             self.apply_edit_button.setState(ApplyEditButton.Edit)
         else:
+            self.endpoint_url_edit.selectAll()
             self.chain_id_edit.setText("")
             self.block_no_edit.setText("")
+            self.chain_id_edit.setEnabled(False)
+            self.block_no_edit.setEnabled(False)
             self.apply_edit_button.setState(ApplyEditButton.Apply)
     
     def on_update(self):
