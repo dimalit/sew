@@ -32,6 +32,12 @@ class NetworkConnector(QObject):
         self._chain_id = chain_id or self.eth.chainId
         
         self.on_connection_change.emit()
+        
+    def disconnect(self):
+        # TODO do it nicely in web3?
+        self.web3 = web3.Web3()
+        self.eth  = self.web3.eth
+        self.on_connection_change.emit()
 
     @property
     def connected(self):

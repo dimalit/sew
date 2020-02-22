@@ -9,7 +9,7 @@ class ApplyEditButton(QPushButton):
         QPushButton.__init__(self, parent)
         
         self.setText(apply_text)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
         self.apply_text = apply_text
         self.edit_text = edit_text
@@ -45,6 +45,7 @@ class NetworkWidget(QGroupBox):
         self.endpoint_url_edit = QLineEdit()
         self.chain_id_edit = QLineEdit()
         self.block_no_edit = QLineEdit()
+        self.apply_edit_button = ApplyEditButton("Connect", "Change")
         
         self.layout.addWidget(QLabel("Endpoint URL:"), 0, 0)
         self.layout.addWidget(self.endpoint_url_edit, 0, 1)
@@ -52,8 +53,19 @@ class NetworkWidget(QGroupBox):
         self.layout.addWidget(self.chain_id_edit, 1, 1)
         self.layout.addWidget(QLabel("Current Block:"), 2, 0)
         self.layout.addWidget(self.block_no_edit, 2, 1)
+        
+        self.layout.addWidget(self.apply_edit_button, 0, 2, 3, 1)
                 
         self.setLayout(self.layout)
+        
+        ########
+        
+        self.apply_edit_button.clicked.connect(self.on_button)
+        
+        ########
+        
+        self.chain_id_edit.setReadOnly(True)
+        self.block_no_edit.setReadOnly(True)
         
     def set_model(self, model):
         #TODO assert("model" not in self)
@@ -62,11 +74,24 @@ class NetworkWidget(QGroupBox):
         model.on_update.connect(self.on_update)
         
     def on_connection_change(self):
-        self.endpoint_url_edit.setText(self.model.endpoint_url)
-        self.chain_id_edit.setText(str(self.model.chain_id))
+        self.endpoint_url_edit.setReadOnly(self.model.connected)
+        if self.model.connected:
+            self.endpoint_url_edit.setText(self.model.endpoint_url)
+            self.chain_id_edit.setText(str(self.model.chain_id))            
+            self.apply_edit_button.setState(ApplyEditButton.Edit)
+        else:
+            self.chain_id_edit.setText("")
+            self.block_no_edit.setText("")
+            self.apply_edit_button.setState(ApplyEditButton.Apply)
     
     def on_update(self):
         self.block_no_edit.setText(str(self.model.block_number))
+        
+    def on_button(self):
+        if self.model.connected:
+            self.model.disconnect()
+        else:
+            self.model.connect(self.endpoint_url_edit.text())
 
 class AccountWidget(QGroupBox):
     def __init__(self, title = "", parent = None):
@@ -178,7 +203,6 @@ class WalletWidget(QWidget):
         
         self.layout = QGridLayout()
         
-        self.network_apply_edit_button = ApplyEditButton("Connect", "Change")
         self.account_apply_edit_button = ApplyEditButton("Apply", "Change")
         self.transaction_apply_edit_button = ApplyEditButton("Sign && Send", "Change")
 
@@ -188,7 +212,6 @@ class WalletWidget(QWidget):
         self.receipt_widget     = ReceiptWidget()
         
         self.layout.addWidget(self.network_widget, 0, 0)
-        self.layout.addWidget(self.network_apply_edit_button, 0, 1)
         self.layout.addWidget(self.account_widget, 1, 0)
         self.layout.addWidget(self.account_apply_edit_button, 1, 1)
         self.layout.addWidget(self.transaction_widget, 2, 0)
