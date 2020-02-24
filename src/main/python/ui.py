@@ -111,6 +111,7 @@ class AccountWidget(QGroupBox):
         self.transaction_count_edit = QLineEdit()
         self.balance_edit = QLineEdit()
         self.transaction_widget = TransactionWidget("Pending Transaction:")
+        self.apply_edit_button = ApplyEditButton("Apply", "Change")
         
         self.layout.addWidget(QLabel("Private Key:"), 0, 0)
         self.layout.addWidget(self.private_key_edit, 0, 1)
@@ -126,6 +127,8 @@ class AccountWidget(QGroupBox):
         
         self.layout.addLayout(self.hor_layout, 2, 0, 1, 2)
         
+        self.layout.addWidget(self.apply_edit_button, 0, 2, 3, 1)        
+        
         self.setLayout(self.layout)        
 
 class TransactionWidget(QGroupBox):
@@ -134,7 +137,7 @@ class TransactionWidget(QGroupBox):
         
         self.setTitle(title or "Transaction:")
         
-        self.vert_layout = QVBoxLayout()
+        self.vert_layout = QGridLayout()
         
         self.from_edit = QLineEdit()
         self.to_edit = QLineEdit()
@@ -144,6 +147,7 @@ class TransactionWidget(QGroupBox):
         self.gas_total_edit = QLineEdit()
         self.total_edit = QLineEdit()
         self.hash_edit = QLineEdit()
+        self.apply_edit_button = ApplyEditButton("Sign && Send", "Change")        
         
         self.addresses_layout = QHBoxLayout()
         self.addresses_layout.addWidget(QLabel("From:"))
@@ -167,9 +171,11 @@ class TransactionWidget(QGroupBox):
         self.hash_layout.addWidget(QLabel("Hash"))
         self.hash_layout.addWidget(self.hash_edit)
         
-        self.vert_layout.addLayout(self.addresses_layout)
-        self.vert_layout.addLayout(self.gas_layout)
-        self.vert_layout.addLayout(self.hash_layout)
+        self.vert_layout.addLayout(self.addresses_layout, 0, 0)
+        self.vert_layout.addLayout(self.gas_layout, 1, 0)
+        self.vert_layout.addLayout(self.hash_layout, 2, 0)
+        
+        self.vert_layout.addWidget(self.apply_edit_button, 0, 1, 3, 1)        
         
         self.setLayout(self.vert_layout)
 
@@ -207,9 +213,6 @@ class WalletWidget(QWidget):
         QWidget.__init__(self, parent)
         
         self.layout = QGridLayout()
-        
-        self.account_apply_edit_button = ApplyEditButton("Apply", "Change")
-        self.transaction_apply_edit_button = ApplyEditButton("Sign && Send", "Change")
 
         self.network_widget      = NetworkWidget()
         self.account_widget     = AccountWidget()
@@ -218,9 +221,7 @@ class WalletWidget(QWidget):
         
         self.layout.addWidget(self.network_widget, 0, 0)
         self.layout.addWidget(self.account_widget, 1, 0)
-        self.layout.addWidget(self.account_apply_edit_button, 1, 1)
         self.layout.addWidget(self.transaction_widget, 2, 0)
-        self.layout.addWidget(self.transaction_apply_edit_button, 2, 1)
         self.layout.addWidget(self.receipt_widget, 3, 0)
         
         self.setLayout(self.layout)
