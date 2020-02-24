@@ -45,6 +45,7 @@ class NetworkConnector(QObject):
     
     @property
     def block_number(self):
+        #TODO generic cache-and-comparator!!
         return self.eth.blockNumber
     
     @property
@@ -52,50 +53,115 @@ class NetworkConnector(QObject):
         return self._chain_id
         
 
-class AccountInformer:
-	def __init__(self):
-		self.addess = None
+class AccountHolder:
+    
+    on_state_change = pyqtSignal()
+    on_account_change = pyqtSignal()
+    on_account_info_change = pyqtSignal()    
+
+    def __init__(self, network_connector):
+        self.addess = None
+        self.network_connector = network_connector
 		
-		self.on_account_change = pyqtSignal()
-		self.on_account_info_change = pyqtSignal()
-		
-	def set_account(self, address):
-		pass
+        self.network_connector.on_connection_change.connect(self.on_network_connection_change)
+        self.network_connector.on_update.connect(self.on_network_update)
+
+    def set_account(self, address):
+        self.address = address
+        self.on_account_change.trigger()
+    
+    @property
+    def active(self):
+        return self.network_connector.connected
+        
+    def has_account(self):
+        return self.address is not None
+    
+    @property
+    def transaction_count(self):
+        return self.network_connector.eth.getTransactionCount(self.address)
+        
+    @property
+    def balance(self):
+        return self.network_connector.eth.getBalance(self.address)
+
+    ########
+    
+    def on_network_connection_change(self):
+        self.on_state_change.trigger()
+    def on_network_update(self):
+        self.on_account_info_change.trigger()
 
 class Transaction:
-	def __init__(self):
-		self._from = None
-		self.to = None
-		self.nonce = None
-		self.value = 0
-		self.gasPrice = 0
+    def __init__(self, _from, to, nonce, value = 0, gasLimit = 21000, gasPrice = 0, hash = ""):
+        self._from = _from
+        self.to = to
+        self.nonce = nonce
+        self.value = value
+        self.gasLimit = gasLimit
+        self.gasPrice = gasPrice
+        self.hash = hash
+
+    @property
+    def gasTotal(self):
+        return self.gasPrice * self.gasLimit
+
+class Receipt:
+    def __init__(self, block_number, transaction_number, gas_used):
+        self.block_number = block_number
+        self.transaction_number = transaction_number
+        self.gas_used = gas_used
 
 class Wallet:
 	
-	def __init__(self):
-		self.private_key = None
-		self.address = None
-		self.seed_phrase = None
+    on_connection_change = pyqtSignal()
+    on_account_change = pyqtSignal()
+    on_pending_transaction_change = pyqtSignal()
+            
+    def __init__(self, network_connector):
+        
+        self.network_connector = network_connector
+        
+        self.private_key = None
+        self.seed_phrase = None
 		
-		self.account_informer = AccountInformer()
-		
-		self.pending_transaction = None
-		
-		self.on_pending_transaction_change = pyqtSignal()
-		
-	def set_account(self, arg1, private_key, address):
-		pass
-	
-	def set_seed_phrase(seed_phrase):
-		pass
-		
-	def get_balance(self):
-		pass
-		
-	def get_transaction_count(self):
-		pass
+        self.account_holder = AccountHolder(self.network_conector)
+        self.pending_transaction = None
+        self.receipt = None
+    
+        self.network_connector.on_connection_change.connect(self.on_connection_change)
+        self.network_connector.on_update.connect(self.on_network_update)
 
-	def send_transaction(self, to, value, gas_price):
-		pass
-		
+    # TODO getters then setters everywhere!
+    @property
+    def connected(self):
+        return self.network_connector.connected
+        
+    @property
+    def has_account(self):
+        return self.private_key is not None
+
+    @property
+    def account(self):
+        return self.account_holder
+
+    def set_account(self, arg1, private_key, address):
+        self.on_account_change.trigger()
 	
+    def set_seed_phrase(seed_phrase):
+        pass
+
+    def send_transaction(self, to, value, gas_price):
+        self.on_pending_transaction_change.trigger()
+		
+	########
+    
+    def on_connection_change(self):
+        self.on_connection_change.trigger()
+        
+    def on_network_update(self):
+        if self.pending_transaction and not self.receipt:
+            r = self.network_connector.eth.getTransactionReceipt(self.pending_transaction.hash)
+            if r is not None:
+                self.receipt = Receipt(r['blockNumber'], r['transactionIndex'], r['cumulativeGasUsed'])
+                self.on_pending_transaction_change.trigger() 
