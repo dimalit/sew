@@ -60,7 +60,7 @@ class NetworkWidget(QGroupBox):
         
         ########
         
-        self.apply_edit_button.clicked.connect(self.on_button)
+        self.apply_edit_button.clicked.connect(self.apply_edit)
         
         ########
         
@@ -70,10 +70,10 @@ class NetworkWidget(QGroupBox):
     def set_model(self, model):
         #TODO assert("model" not in self)
         self.model = model
-        model.on_connection_change.connect(self.on_connection_change)
-        model.on_update.connect(self.on_update)
+        model.on_connection_change.connect(self.show_data)
+        model.on_update.connect(self.show_data)
         
-    def on_connection_change(self):
+    def show_state(self):
         self.endpoint_url_edit.setReadOnly(self.model.connected)
         if self.model.connected:
             self.endpoint_url_edit.setText(self.model.endpoint_url)
@@ -89,10 +89,10 @@ class NetworkWidget(QGroupBox):
             self.block_no_edit.setEnabled(False)
             self.apply_edit_button.setState(ApplyEditButton.Apply)
     
-    def on_update(self):
+    def show_data(self):
         self.block_no_edit.setText(str(self.model.block_number))
         
-    def on_button(self):
+    def apply_edit(self):
         if self.model.connected:
             self.model.disconnect()
         else:
@@ -135,17 +135,22 @@ class AccountWidget(QGroupBox):
         
     def connect_wallet(self, wallet):
         self.wallet = wallet
-        self.wallet.on_connection_change.connect(self.on_connection_change)
-        self.wallet.on_account_change.connect(self.on_account_change)
-        self.wallet.account.on_account_info_change.connect(self.on_account_info_change)
         
-    def on_connection_change(self):
+        self.wallet.on_connection_change.connect(self.show_state)
+        self.wallet.on_account_change.connect(self.show_account)
+        self.wallet.account.on_account_info_change.connect(self.show_account_data)
+        
+        self.show_state()
+        self.show_account()
+        self.show_account_data()
+        
+    def show_state(self):
         self.setEnabled(self.wallet.connected)
     
-    def on_account_change(self):
+    def show_account(self):
         pass
         
-    def on_account_info_change(self):
+    def show_account_data(self):
         pass
 
 class TransactionWidget(QGroupBox):

@@ -19,7 +19,7 @@ if __name__ == '__main__':
     wallet_widget.network_widget.set_model(nc)
     wallet_widget.account_widget.connect_wallet(wallet)
     
-    nc.connect("https://main-rpc.linkpool.io") #"http://127.0.0.1:1234")
+    #nc.connect("https://main-rpc.linkpool.io") #"http://127.0.0.1:1234")
     
     window.show()
     exit_code = appctxt.app.exec_()      # 2. Invoke appctxt.app.exec_()
