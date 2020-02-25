@@ -53,13 +53,15 @@ class NetworkConnector(QObject):
         return self._chain_id
         
 
-class AccountHolder:
+class AccountHolder(QObject):
     
     on_state_change = pyqtSignal()
     on_account_change = pyqtSignal()
     on_account_info_change = pyqtSignal()    
 
-    def __init__(self, network_connector):
+    def __init__(self, network_connector, parent = None):
+        QObject.__init__(self, parent)
+        
         self.addess = None
         self.network_connector = network_connector
 		
@@ -68,7 +70,7 @@ class AccountHolder:
 
     def set_account(self, address):
         self.address = address
-        self.on_account_change.trigger()
+        self.on_account_change.emit()
     
     @property
     def active(self):
@@ -88,9 +90,9 @@ class AccountHolder:
     ########
     
     def on_network_connection_change(self):
-        self.on_state_change.trigger()
+        self.on_state_change.emit()
     def on_network_update(self):
-        self.on_account_info_change.trigger()
+        self.on_account_info_change.emit()
 
 class Transaction:
     def __init__(self, _from, to, nonce, value = 0, gasLimit = 21000, gasPrice = 0, hash = ""):
@@ -112,24 +114,26 @@ class Receipt:
         self.transaction_number = transaction_number
         self.gas_used = gas_used
 
-class Wallet:
+class Wallet(QObject):
 	
     on_connection_change = pyqtSignal()
     on_account_change = pyqtSignal()
     on_pending_transaction_change = pyqtSignal()
             
-    def __init__(self, network_connector):
+    def __init__(self, network_connector, parent = None):
+        
+        QObject.__init__(self, parent)
         
         self.network_connector = network_connector
         
         self.private_key = None
         self.seed_phrase = None
 		
-        self.account_holder = AccountHolder(self.network_conector)
+        self.account_holder = AccountHolder(self.network_connector)
         self.pending_transaction = None
         self.receipt = None
     
-        self.network_connector.on_connection_change.connect(self.on_connection_change)
+        self.network_connector.on_connection_change.connect(self.on_network_connection_change)
         self.network_connector.on_update.connect(self.on_network_update)
 
     # TODO getters then setters everywhere!
@@ -146,22 +150,22 @@ class Wallet:
         return self.account_holder
 
     def set_account(self, arg1, private_key, address):
-        self.on_account_change.trigger()
+        self.on_account_change.emit()
 	
     def set_seed_phrase(seed_phrase):
         pass
 
     def send_transaction(self, to, value, gas_price):
-        self.on_pending_transaction_change.trigger()
+        self.on_pending_transaction_change.emit()
 		
 	########
     
-    def on_connection_change(self):
-        self.on_connection_change.trigger()
+    def on_network_connection_change(self):
+        self.on_connection_change.emit()
         
     def on_network_update(self):
         if self.pending_transaction and not self.receipt:
             r = self.network_connector.eth.getTransactionReceipt(self.pending_transaction.hash)
             if r is not None:
                 self.receipt = Receipt(r['blockNumber'], r['transactionIndex'], r['cumulativeGasUsed'])
-                self.on_pending_transaction_change.trigger() 
+                self.on_pending_transaction_change.emit() 

@@ -129,7 +129,24 @@ class AccountWidget(QGroupBox):
         
         self.layout.addWidget(self.apply_edit_button, 0, 2, 3, 1)        
         
-        self.setLayout(self.layout)        
+        self.setLayout(self.layout)
+        
+        ########
+        
+    def connect_wallet(self, wallet):
+        self.wallet = wallet
+        self.wallet.on_connection_change.connect(self.on_connection_change)
+        self.wallet.on_account_change.connect(self.on_account_change)
+        self.wallet.account.on_account_info_change.connect(self.on_account_info_change)
+        
+    def on_connection_change(self):
+        self.setEnabled(self.wallet.connected)
+    
+    def on_account_change(self):
+        pass
+        
+    def on_account_info_change(self):
+        pass
 
 class TransactionWidget(QGroupBox):
     def __init__(self, title = "", parent = None):

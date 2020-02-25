@@ -10,11 +10,15 @@ if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext
     window = QMainWindow()
     
-    wallet = ui.WalletWidget()
-    window.setCentralWidget(wallet)
+    wallet_widget = ui.WalletWidget()
+    window.setCentralWidget(wallet_widget)
     
     nc = models.NetworkConnector()
-    wallet.network_widget.set_model(nc)
+    wallet = models.Wallet(nc)
+    
+    wallet_widget.network_widget.set_model(nc)
+    wallet_widget.account_widget.connect_wallet(wallet)
+    
     nc.connect("https://main-rpc.linkpool.io") #"http://127.0.0.1:1234")
     
     window.show()
