@@ -70,7 +70,7 @@ class NetworkWidget(QGroupBox):
     def set_model(self, model):
         #TODO assert("model" not in self)
         self.model = model
-        model.on_connection_change.connect(self.show_data)
+        model.on_connection_change.connect(self.show_state)
         model.on_update.connect(self.show_data)
         
     def show_state(self):
@@ -133,6 +133,15 @@ class AccountWidget(QGroupBox):
         
         ########
         
+        self.apply_edit_button.clicked.connect(self.apply_edit)
+        self.private_key_edit.setText('0x1af84ac2809b41314a7454b65f692cabbe39f78007fd0134c0018fbb68c173f0')
+        
+        ########
+        
+        self.address_edit.setReadOnly(True)
+        self.transaction_count_edit.setReadOnly(True)
+        self.balance_edit.setReadOnly(True)
+        
     def connect_wallet(self, wallet):
         self.wallet = wallet
         
@@ -142,16 +151,32 @@ class AccountWidget(QGroupBox):
         
         self.show_state()
         self.show_account()
-        self.show_account_data()
+        if wallet.has_account:
+            self.show_account_data()
         
     def show_state(self):
         self.setEnabled(self.wallet.connected)
     
     def show_account(self):
-        pass
+        if self.wallet.has_account:
+            self.apply_edit_button.setState(self.apply_edit_button.Edit)
+            self.private_key_edit.setText(self.wallet.private_key)
+            self.address_edit.setText(self.wallet.account.address)
+            self.show_account_data()
+        else:
+            self.apply_edit_button.setState(self.apply_edit_button.Apply)
         
     def show_account_data(self):
-        pass
+        holder = self.wallet.account
+        self.transaction_count_edit.setText(str(holder.transaction_count()))
+        self.balance_edit.setText(str(self.wallet.account.balance()))
+        
+    def apply_edit(self):
+        if self.wallet.has_account:
+            self.wallet.set_account(None)
+        else:
+            private_key = self.private_key_edit.text()
+            self.wallet.set_account(private_key)
 
 class TransactionWidget(QGroupBox):
     def __init__(self, title = "", parent = None):

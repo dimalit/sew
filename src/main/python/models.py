@@ -1,5 +1,6 @@
 from PyQt5.QtCore import *
 import web3
+from web3.auto import w3
 
 class NetworkConnector(QObject):
     
@@ -12,7 +13,7 @@ class NetworkConnector(QObject):
         self.web3 = web3.Web3()
         
         self.timer = QTimer()
-        self.timer.setInterval( 1000 )
+        self.timer.setInterval( 5000 )
         self.timer.timeout.connect(self.timer_handler)
         self.timer.start()
 
@@ -62,7 +63,7 @@ class AccountHolder(QObject):
     def __init__(self, network_connector, parent = None):
         QObject.__init__(self, parent)
         
-        self.addess = None
+        self.address = None
         self.network_connector = network_connector
 		
         self.network_connector.on_connection_change.connect(self.on_network_connection_change)
@@ -79,11 +80,9 @@ class AccountHolder(QObject):
     def has_account(self):
         return self.address is not None
     
-    @property
     def transaction_count(self):
         return self.network_connector.eth.getTransactionCount(self.address)
         
-    @property
     def balance(self):
         return self.network_connector.eth.getBalance(self.address)
 
@@ -92,7 +91,8 @@ class AccountHolder(QObject):
     def on_network_connection_change(self):
         self.on_state_change.emit()
     def on_network_update(self):
-        self.on_account_info_change.emit()
+        if self.has_account():
+            self.on_account_info_change.emit()
 
 class Transaction:
     def __init__(self, _from, to, nonce, value = 0, gasLimit = 21000, gasPrice = 0, hash = ""):
@@ -149,7 +149,13 @@ class Wallet(QObject):
     def account(self):
         return self.account_holder
 
-    def set_account(self, arg1, private_key, address):
+    def set_account(self, private_key):
+        self.private_key = private_key
+        try: 
+            address = w3.eth.account.privateKeyToAccount(web3.Web3.toBytes(hexstr=self.private_key)).address
+        except:
+            address = None
+        self.account_holder.set_account(address)
         self.on_account_change.emit()
 	
     def set_seed_phrase(seed_phrase):
