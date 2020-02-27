@@ -169,7 +169,7 @@ class AccountWidget(QGroupBox):
     def show_account_data(self):
         holder = self.wallet.account
         self.transaction_count_edit.setText(str(holder.transaction_count()))
-        self.balance_edit.setText(str(self.wallet.account.balance()))
+        self.balance_edit.setText(str(self.wallet.account.balance()/1e+18))
         
     def apply_edit(self):
         if self.wallet.has_account:
