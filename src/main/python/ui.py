@@ -81,6 +81,8 @@ class NetworkWidget(QGroupBox):
             self.chain_id_edit.setEnabled(True)
             self.block_no_edit.setEnabled(True)
             self.apply_edit_button.setState(ApplyEditButton.Edit)
+            
+            self.show_data()
         else:
             self.endpoint_url_edit.selectAll()
             self.chain_id_edit.setText("")
@@ -151,14 +153,14 @@ class AccountWidget(QGroupBox):
         
         self.show_state()
         self.show_account()
-        if wallet.has_account:
+        if wallet.has_account():
             self.show_account_data()
         
     def show_state(self):
         self.setEnabled(self.wallet.connected)
     
     def show_account(self):
-        if self.wallet.has_account:
+        if self.wallet.has_account():
             self.apply_edit_button.setState(self.apply_edit_button.Edit)
             self.private_key_edit.setText(self.wallet.private_key)
             self.address_edit.setText(self.wallet.account.address)
@@ -172,7 +174,7 @@ class AccountWidget(QGroupBox):
         self.balance_edit.setText(str(self.wallet.account.balance()/1e+18))
         
     def apply_edit(self):
-        if self.wallet.has_account:
+        if self.wallet.has_account():
             self.wallet.set_account(None)
         else:
             private_key = self.private_key_edit.text()
@@ -225,6 +227,73 @@ class TransactionWidget(QGroupBox):
         self.vert_layout.addWidget(self.apply_edit_button, 0, 1, 3, 1)        
         
         self.setLayout(self.vert_layout)
+        
+        ########
+        
+        self.apply_edit_button.clicked.connect(self.apply_edit)
+        self.to_edit.setText("0x00Dd2088723141852C65F93d789F58269A6ffAEe")
+        self.value_edit.setText("0.001")
+        self.gas_price_edit.setText("1e-9")
+        self.gas_amount_edit.setText("21000")
+        
+        ########
+        
+        self.hash_edit.setReadOnly(True)
+        
+    def connect_wallet(self, wallet):
+        self.wallet = wallet
+        
+        self.wallet.on_connection_change.connect(self.render)
+        self.wallet.on_account_change.connect(self.render)
+        self.wallet.on_pending_transaction_change.connect(self.render)
+        
+        self.render()
+        
+    def render(self):
+        if (not self.wallet.connected) or (not self.wallet.has_account()):
+            self.setEnabled(False)
+            return
+
+        self.setEnabled(True)
+        
+        if self.wallet.pending_transaction is None or self.wallet.receipt is not None:
+            self.from_edit.setEnabled(True)
+            self.to_edit.setEnabled(True)
+            self.value_edit.setEnabled(True)
+            self.gas_price_edit.setEnabled(True)
+            self.gas_amount_edit.setEnabled(True)
+            self.gas_total_edit.setEnabled(True)
+            self.total_edit.setEnabled(True)
+            self.hash_edit.setEnabled(True)
+            
+            self.hash_edit.setText("")
+            self.apply_edit_button.setState(ApplyEditButton.Apply)
+        else:
+            self.from_edit.setEnabled(False)
+            self.to_edit.setEnabled(False)
+            self.value_edit.setEnabled(False)
+            self.gas_price_edit.setEnabled(False)
+            self.gas_amount_edit.setEnabled(False)
+            self.gas_total_edit.setEnabled(False)
+            self.total_edit.setEnabled(False)
+            self.hash_edit.setEnabled(False)       
+
+            self.apply_edit_button.setState(ApplyEditButton.Edit)
+
+        t = self.wallet.pending_transaction
+        if t is not None:
+            self.from_edit.setText(t._from)
+            self.to_edit.setText(t.to)
+            self.value_edit.setText(str(t.value/1e+18))
+            if self.wallet.receipt is not None:
+                self.hash_edit.setText(t.hash)
+        
+    def apply_edit(self):
+        if self.wallet.pending_transaction is None or self.wallet.receipt is not None:
+            to = self.to_edit.text()
+            value = int(float(self.value_edit.text())*1e+18)
+            gas_price = int(float(self.gas_price_edit.text())*1e+18)
+            self.wallet.send_transaction(to, value, gas_price)
 
 class ReceiptWidget(QGroupBox):
     def __init__(self, title = "", parent = None):

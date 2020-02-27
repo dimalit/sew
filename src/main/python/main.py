@@ -18,6 +18,7 @@ if __name__ == '__main__':
     
     wallet_widget.network_widget.set_model(nc)
     wallet_widget.account_widget.connect_wallet(wallet)
+    wallet_widget.transaction_widget.connect_wallet(wallet)
     
     nc.connect("https://rpc.goerli.mudit.blog/") #"https://main-rpc.linkpool.io") #"http://127.0.0.1:1234")
     

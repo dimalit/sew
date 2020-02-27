@@ -140,8 +140,7 @@ class Wallet(QObject):
     @property
     def connected(self):
         return self.network_connector.connected
-        
-    @property
+
     def has_account(self):
         return self.private_key is not None
 
@@ -162,6 +161,20 @@ class Wallet(QObject):
         pass
 
     def send_transaction(self, to, value, gas_price):
+        t = {
+            "from": self.account.address,
+            "to": to,
+            "value": value,
+            "gas": 21000,
+            "gasPrice": gas_price,
+            "nonce": self.account.transaction_count()
+            #"data": data
+        }
+        signed = w3.eth.account.signTransaction(t, private_key=web3.Web3.toBytes(hexstr=self.private_key))
+        raw = web3.Web3.toHex(signed.rawTransaction)
+        hash = web3.Web3.toHex(self.network_connector.eth.sendRawTransaction(raw))
+        self.receipt = None
+        self.pending_transaction = Transaction(t["from"], t["to"], t["nonce"], hash = hash)
         self.on_pending_transaction_change.emit()
 		
 	########
@@ -171,7 +184,9 @@ class Wallet(QObject):
         
     def on_network_update(self):
         if self.pending_transaction and not self.receipt:
-            r = self.network_connector.eth.getTransactionReceipt(self.pending_transaction.hash)
-            if r is not None:
+            try:
+                r = self.network_connector.eth.getTransactionReceipt(self.pending_transaction.hash)
                 self.receipt = Receipt(r['blockNumber'], r['transactionIndex'], r['cumulativeGasUsed'])
-                self.on_pending_transaction_change.emit() 
+                self.on_pending_transaction_change.emit()
+            except:
+                pass
