@@ -181,9 +181,10 @@ class AccountWidget(QGroupBox):
             self.wallet.set_account(private_key)
 
 class TransactionWidget(QGroupBox):
+    
     def __init__(self, title = "", parent = None):
         QGroupBox.__init__(self, parent)
-        
+                
         self.setTitle(title or "Transaction:")
         
         self.vert_layout = QGridLayout()
@@ -238,62 +239,87 @@ class TransactionWidget(QGroupBox):
         
         ########
         
+        self.from_edit.setReadOnly(True)
         self.hash_edit.setReadOnly(True)
+        self.gas_total_edit.setReadOnly(True)
+        self.total_edit.setReadOnly(True)
+        
+        self.set_editing(True)
         
     def connect_wallet(self, wallet):
         self.wallet = wallet
         
-        self.wallet.on_connection_change.connect(self.render)
-        self.wallet.on_account_change.connect(self.render)
-        self.wallet.on_pending_transaction_change.connect(self.render)
+        self.wallet.on_connection_change.connect(self.show_state)
+        self.wallet.on_account_change.connect(self.show_state)
+        self.wallet.on_pending_transaction_change.connect(self.show_transaction)
         
-        self.render()
+        self.show_state()
+#        self.show_transaction()
+    
+    def set_editing(self, value):
         
-    def render(self):
-        if (not self.wallet.connected) or (not self.wallet.has_account()):
-            self.setEnabled(False)
-            return
-
-        self.setEnabled(True)
+        self.editing = value
         
-        if self.wallet.pending_transaction is None or self.wallet.receipt is not None:
-            self.from_edit.setEnabled(True)
-            self.to_edit.setEnabled(True)
-            self.value_edit.setEnabled(True)
-            self.gas_price_edit.setEnabled(True)
-            self.gas_amount_edit.setEnabled(True)
-            self.gas_total_edit.setEnabled(True)
-            self.total_edit.setEnabled(True)
-            self.hash_edit.setEnabled(True)
+        if self.editing:
+            self.to_edit.setReadOnly(False)
+            self.value_edit.setReadOnly(False)
+            self.gas_price_edit.setReadOnly(False)
+            self.gas_amount_edit.setReadOnly(False)
             
             self.hash_edit.setText("")
+            self.gas_total_edit.setText("")
+            self.total_edit.setText("")
             self.apply_edit_button.setState(ApplyEditButton.Apply)
         else:
-            self.from_edit.setEnabled(False)
-            self.to_edit.setEnabled(False)
-            self.value_edit.setEnabled(False)
-            self.gas_price_edit.setEnabled(False)
-            self.gas_amount_edit.setEnabled(False)
-            self.gas_total_edit.setEnabled(False)
-            self.total_edit.setEnabled(False)
-            self.hash_edit.setEnabled(False)       
+            self.to_edit.setReadOnly(True)
+            self.value_edit.setReadOnly(True)
+            self.gas_price_edit.setReadOnly(True)
+            self.gas_amount_edit.setReadOnly(True)
 
             self.apply_edit_button.setState(ApplyEditButton.Edit)
-
+    
+    def show_state(self):
+        if (not self.wallet.connected) or (not self.wallet.has_account()):
+            self.setEnabled(False)
+        else:
+            self.setEnabled(True)
+            self.from_edit.setText(self.wallet.account.address)
+    
+    def show_transaction(self):
+        
         t = self.wallet.pending_transaction
+
         if t is not None:
+            self.set_editing(False)
+            
             self.from_edit.setText(t._from)
             self.to_edit.setText(t.to)
             self.value_edit.setText(str(t.value/1e+18))
+            self.gas_amount_edit.setText(str(t.gasLimit))
+            self.gas_price_edit.setText(str(t.gasPrice/1e+18))
+            self.gas_total_edit.setText(str(t.gasTotal/1e+18))
             if self.wallet.receipt is not None:
                 self.hash_edit.setText(t.hash)
+        else:
+            self.set_editing(True)
+            
+            self.from_edit.setText("")
+            self.to_edit.setText("")
+            self.value_edit.setText("")
+            self.gas_amount_edit.setText("")            
+            self.gas_price_edit.setText("")
+            self.gas_total_edit.setText("")
+            self.total_edit.setText("")
+            self.hash_edit.setText("")
         
     def apply_edit(self):
-        if self.wallet.pending_transaction is None or self.wallet.receipt is not None:
+        if self.apply_edit_button.state == ApplyEditButton.Apply:
             to = self.to_edit.text()
             value = int(float(self.value_edit.text())*1e+18)
             gas_price = int(float(self.gas_price_edit.text())*1e+18)
             self.wallet.send_transaction(to, value, gas_price)
+        elif self.apply_edit_button.state == ApplyEditButton.Edit:
+            self.set_editing(True)
 
 class ReceiptWidget(QGroupBox):
     def __init__(self, title = "", parent = None):

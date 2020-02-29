@@ -174,7 +174,7 @@ class Wallet(QObject):
         raw = web3.Web3.toHex(signed.rawTransaction)
         hash = web3.Web3.toHex(self.network_connector.eth.sendRawTransaction(raw))
         self.receipt = None
-        self.pending_transaction = Transaction(t["from"], t["to"], t["nonce"], hash = hash)
+        self.pending_transaction = Transaction(t["from"], t["to"], t["nonce"], t["value"], t["gas"], t["gasPrice"], hash)
         self.on_pending_transaction_change.emit()
 		
 	########
