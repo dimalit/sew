@@ -161,17 +161,20 @@ class AccountWidget(QGroupBox):
     
     def show_account(self):
         if self.wallet.has_account():
+            self.private_key_edit.setReadOnly(True)
             self.apply_edit_button.setState(self.apply_edit_button.Edit)
+            
             self.private_key_edit.setText(self.wallet.private_key)
             self.address_edit.setText(self.wallet.account.address)
             self.show_account_data()
         else:
+            self.private_key_edit.setReadOnly(False)
             self.apply_edit_button.setState(self.apply_edit_button.Apply)
         
     def show_account_data(self):
         holder = self.wallet.account
         self.transaction_count_edit.setText(str(holder.transaction_count()))
-        self.balance_edit.setText(str(self.wallet.account.balance()/1e+18))
+        self.balance_edit.setText(str(holder.balance()/1e+18))
         
     def apply_edit(self):
         if self.wallet.has_account():
@@ -243,6 +246,7 @@ class TransactionWidget(QGroupBox):
         self.hash_edit.setReadOnly(True)
         self.gas_total_edit.setReadOnly(True)
         self.total_edit.setReadOnly(True)
+        self.gas_amount_edit.setReadOnly(True)
         
         self.set_editing(True)
         
@@ -264,7 +268,6 @@ class TransactionWidget(QGroupBox):
             self.to_edit.setReadOnly(False)
             self.value_edit.setReadOnly(False)
             self.gas_price_edit.setReadOnly(False)
-            self.gas_amount_edit.setReadOnly(False)
             
             self.hash_edit.setText("")
             self.gas_total_edit.setText("")
@@ -274,7 +277,6 @@ class TransactionWidget(QGroupBox):
             self.to_edit.setReadOnly(True)
             self.value_edit.setReadOnly(True)
             self.gas_price_edit.setReadOnly(True)
-            self.gas_amount_edit.setReadOnly(True)
 
             self.apply_edit_button.setState(ApplyEditButton.Edit)
     
@@ -298,8 +300,7 @@ class TransactionWidget(QGroupBox):
             self.gas_amount_edit.setText(str(t.gasLimit))
             self.gas_price_edit.setText(str(t.gasPrice/1e+18))
             self.gas_total_edit.setText(str(t.gasTotal/1e+18))
-            if self.wallet.receipt is not None:
-                self.hash_edit.setText(t.hash)
+            self.hash_edit.setText(t.hash or "")
         else:
             self.set_editing(True)
             
