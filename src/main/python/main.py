@@ -9,6 +9,7 @@ import sys
 if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext
     window = QMainWindow()
+    window.setWindowTitle("Simple Ethereum Wallet v0.1")
     
     wallet_widget = ui.WalletWidget()
     window.setCentralWidget(wallet_widget)
@@ -19,6 +20,7 @@ if __name__ == '__main__':
     wallet_widget.network_widget.set_model(nc)
     wallet_widget.account_widget.connect_wallet(wallet)
     wallet_widget.transaction_widget.connect_wallet(wallet)
+    wallet_widget.receipt_widget.connect_wallet(wallet)
     
     nc.connect("https://rpc.goerli.mudit.blog/") #"https://main-rpc.linkpool.io") #"http://127.0.0.1:1234")
     

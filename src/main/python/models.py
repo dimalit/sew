@@ -109,10 +109,11 @@ class Transaction:
         return self.gasPrice * self.gasLimit
 
 class Receipt:
-    def __init__(self, block_number, transaction_number, gas_used):
+    def __init__(self, block_number, transaction_index, gas_used, hash):
         self.block_number = block_number
-        self.transaction_number = transaction_number
+        self.transaction_index = transaction_index
         self.gas_used = gas_used
+        self.hash = hash
 
 class Wallet(QObject):
 	
@@ -186,7 +187,7 @@ class Wallet(QObject):
         if self.pending_transaction and not self.receipt:
             try:
                 r = self.network_connector.eth.getTransactionReceipt(self.pending_transaction.hash)
-                self.receipt = Receipt(r['blockNumber'], r['transactionIndex'], r['cumulativeGasUsed'])
+                self.receipt = Receipt(r['blockNumber'], r['transactionIndex'], r['cumulativeGasUsed'], web3.Web3.toHex(r["transactionHash"]))
                 self.on_pending_transaction_change.emit()
             except:
                 pass

@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 class ApplyEditButton(QPushButton):
     
@@ -185,6 +186,8 @@ class AccountWidget(QGroupBox):
 
 class TransactionWidget(QGroupBox):
     
+    on_editing_change = pyqtSignal()
+    
     def __init__(self, title = "", parent = None):
         QGroupBox.__init__(self, parent)
                 
@@ -200,7 +203,7 @@ class TransactionWidget(QGroupBox):
         self.gas_total_edit = QLineEdit()
         self.total_edit = QLineEdit()
         self.hash_edit = QLineEdit()
-        self.apply_edit_button = ApplyEditButton("Sign && Send", "Change")        
+        self.apply_edit_button = ApplyEditButton("Sign && Send", "New")        
         
         self.addresses_layout = QHBoxLayout()
         self.addresses_layout.addWidget(QLabel("From:"))
@@ -279,6 +282,8 @@ class TransactionWidget(QGroupBox):
             self.gas_price_edit.setReadOnly(True)
 
             self.apply_edit_button.setState(ApplyEditButton.Edit)
+            
+        self.on_editing_change.emit()
     
     def show_state(self):
         if (not self.wallet.connected) or (not self.wallet.has_account()):
@@ -333,7 +338,10 @@ class ReceiptWidget(QGroupBox):
         self.block_no_edit = QLineEdit()
         self.tx_no_edit = QLineEdit()
         self.gas_used_edit = QLineEdit()
+        
         self.explorer_link = QLabel();
+        self.explorer_link.openExtarnalLinks = True
+        
         
         self.location_layout = QHBoxLayout()
         self.location_layout.addWidget(QLabel("Block No:"))
@@ -350,7 +358,43 @@ class ReceiptWidget(QGroupBox):
         self.vert_layout.addLayout(self.link_layout)
         
         self.setLayout(self.vert_layout)
+        
+        ########
 
+        self.block_no_edit.setReadOnly(True)
+        self.tx_no_edit.setReadOnly(True)
+        self.gas_used_edit.setReadOnly(True)
+        
+    def connect_wallet(self, wallet):
+        self.wallet = wallet
+        
+        self.wallet.on_connection_change.connect(self.show_state)
+        self.wallet.on_account_change.connect(self.show_state)
+        self.wallet.on_pending_transaction_change.connect(self.show_transaction)
+        
+        self.show_state()
+        self.show_transaction()
+        
+    def show_state(self):
+        self.setEnabled(self.wallet.connected and self.wallet.account.has_account() and self.wallet.receipt is not None)
+        
+    def show_transaction(self):
+        r = self.wallet.receipt
+        if r:
+            self.block_no_edit.setText(str(r.block_number))
+            self.tx_no_edit.setText(str(r.transaction_index))
+            self.gas_used_edit.setText(str(r.gas_used))
+            self.explorer_link.setText(f"<a href='https://goerli.etherscan.io/tx/{r.hash}'>https://goerli.etherscan.io/tx/{r.hash}</a>")
+            
+            self.setEnabled(True)
+        else:
+            self.block_no_edit.setText("")
+            self.tx_no_edit.setText("")
+            self.gas_used_edit.setText("")
+            self.explorer_link.setText("")
+            
+            self.setEnabled(False)
+        
 class WalletWidget(QWidget):
     def __init__(self, parent = None):
         QWidget.__init__(self, parent)
