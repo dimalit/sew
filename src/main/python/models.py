@@ -7,6 +7,7 @@ class NetworkConnector(QObject):
     # TODO Why static??!!
     on_connection_change = pyqtSignal()
     on_update = pyqtSignal()
+    on_request = pyqtSignal(str, 'PyQt_PyObject', 'PyQt_PyObject')
     
     def __init__(self, parent = None):
         QObject.__init__(self, parent)
@@ -27,6 +28,10 @@ class NetworkConnector(QObject):
         provider = web3.Web3.HTTPProvider(endpoint_url)
         self.web3 = web3.Web3(provider)
         self.eth  = self.web3.eth
+        
+        def middleware_wrapper(make_request, w3):
+            return lambda method, params: self.request_middleware(make_request, method, params)
+        self.web3.middleware_onion.inject(middleware_wrapper, layer=0)
         
         self.endpoint_url = endpoint_url
         
@@ -53,6 +58,10 @@ class NetworkConnector(QObject):
     def chain_id(self):
         return self._chain_id
         
+    def request_middleware(self, make_request, method, params):
+        res = make_request(method, params)
+        self.on_request.emit(method, params, res)
+        return res
 
 class AccountHolder(QObject):
     

@@ -401,14 +401,18 @@ class WalletWidget(QWidget):
         
         self.layout = QGridLayout()
 
-        self.network_widget      = NetworkWidget()
+        self.network_widget     = NetworkWidget()
         self.account_widget     = AccountWidget()
         self.transaction_widget = TransactionWidget("Pending Transaction:")
         self.receipt_widget     = ReceiptWidget()
+        self.log_widget         = QTextEdit()
+        
+        self.log_widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         
         self.layout.addWidget(self.network_widget, 0, 0)
         self.layout.addWidget(self.account_widget, 1, 0)
         self.layout.addWidget(self.transaction_widget, 2, 0)
         self.layout.addWidget(self.receipt_widget, 3, 0)
+        self.layout.addWidget(self.log_widget, 4, 0)
         
         self.setLayout(self.layout)
