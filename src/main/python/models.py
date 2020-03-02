@@ -13,6 +13,8 @@ class NetworkConnector(QObject):
         QObject.__init__(self, parent)
         self.web3 = web3.Web3()
         
+        self.block_number = None    # main indicator of change
+        
         self.timer = QTimer()
         self.timer.setInterval( 5000 )
         self.timer.timeout.connect(self.timer_handler)
@@ -21,7 +23,10 @@ class NetworkConnector(QObject):
     def timer_handler(self):
         if not self.connected:
             return
-        self.on_update.emit()
+        block_number = self.eth.blockNumber
+        if self.block_number != block_number:
+            self.block_number = block_number
+            self.on_update.emit()
 
     def connect(self, endpoint_url, chain_id = None):
         # TODO why it's still 'connected' even if error?
@@ -37,6 +42,7 @@ class NetworkConnector(QObject):
             self.endpoint_url = endpoint_url
             
             self._chain_id = chain_id or self.eth.chainId
+            self.block_number = self.eth.blockNumber
             
             self.on_connection_change.emit()
         except Exception as ex:
@@ -51,11 +57,6 @@ class NetworkConnector(QObject):
     @property
     def connected(self):
         return self.web3.isConnected()
-    
-    @property
-    def block_number(self):
-        #TODO generic cache-and-comparator!!
-        return self.eth.blockNumber
     
     @property
     def chain_id(self):
