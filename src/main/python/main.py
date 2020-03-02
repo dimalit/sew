@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QMainWindow
 
 import sys
 
+
 if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext
     window = QMainWindow()
@@ -28,18 +29,29 @@ if __name__ == '__main__':
         if "result" in res:
             print_res = res["result"]
         elif "error" in res:
-            print_res = res["result"]
+            print_res = res["error"]
         print(method, str(params), "->", str(print_res))
     
     nc.on_request.connect(print_request)
+
+    last_request = ""
     
     def log_request(method, params, res):
+        
+        global last_request
+        
         print_res = res
         if "result" in res:
             print_res = res["result"]
         elif "error" in res:
-            print_res = res["result"]
-        wallet_widget.log_widget.append(f"{time.asctime()} {method} {str(params)} -> {str(print_res)}")        
+            print_res = res["error"]
+        
+        request = f"{method} {str(params)} -> {str(print_res)}"
+        if request == last_request:
+            wallet_widget.log_widget.undo()
+        wallet_widget.log_widget.append(f"{time.asctime()} {request}")
+
+        last_request = request
     
     nc.on_request.connect(log_request)
     
