@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+import web3
 
 class ApplyEditButton(QPushButton):
     
@@ -169,13 +170,20 @@ class AccountWidget(QGroupBox):
             self.address_edit.setText(self.wallet.account.address)
             self.show_account_data()
         else:
+            self.address_edit.setText("")
             self.private_key_edit.setReadOnly(False)
             self.apply_edit_button.setState(self.apply_edit_button.Apply)
         
+        self.show_account_data()
+        
     def show_account_data(self):
         holder = self.wallet.account
-        self.transaction_count_edit.setText(str(holder.transaction_count()))
-        self.balance_edit.setText(str(holder.balance()/1e+18))
+        if holder.has_account():
+            self.transaction_count_edit.setText(str(holder.transaction_count()))
+            self.balance_edit.setText(str(holder.balance()/1e+18))
+        else:
+            self.transaction_count_edit.setText("")
+            self.balance_edit.setText("")
         
     def apply_edit(self):
         if self.wallet.has_account():
@@ -320,10 +328,15 @@ class TransactionWidget(QGroupBox):
         
     def apply_edit(self):
         if self.apply_edit_button.state == ApplyEditButton.Apply:
-            to = self.to_edit.text()
-            value = int(float(self.value_edit.text())*1e+18)
-            gas_price = int(float(self.gas_price_edit.text())*1e+18)
-            self.wallet.send_transaction(to, value, gas_price)
+            try:
+                to = self.to_edit.text()
+                if not web3.Web3.isChecksumAddress(to):
+                    raise RuntimeError(f"Invalid address: {to}")
+                value = int(float(self.value_edit.text())*1e+18)
+                gas_price = int(float(self.gas_price_edit.text())*1e+18)
+                self.wallet.send_transaction(to, value, gas_price)
+            except Exception as ex:
+                print(ex)
         elif self.apply_edit_button.state == ApplyEditButton.Edit:
             self.set_editing(True)
 

@@ -25,19 +25,22 @@ class NetworkConnector(QObject):
 
     def connect(self, endpoint_url, chain_id = None):
         # TODO why it's still 'connected' even if error?
-        provider = web3.Web3.HTTPProvider(endpoint_url)
-        self.web3 = web3.Web3(provider)
-        self.eth  = self.web3.eth
-        
-        def middleware_wrapper(make_request, w3):
-            return lambda method, params: self.request_middleware(make_request, method, params)
-        self.web3.middleware_onion.inject(middleware_wrapper, layer=0)
-        
-        self.endpoint_url = endpoint_url
-        
-        self._chain_id = chain_id or self.eth.chainId
-        
-        self.on_connection_change.emit()
+        try:
+            provider = web3.Web3.HTTPProvider(endpoint_url)
+            self.web3 = web3.Web3(provider)
+            self.eth  = self.web3.eth
+            
+            def middleware_wrapper(make_request, w3):
+                return lambda method, params: self.request_middleware(make_request, method, params)
+            self.web3.middleware_onion.inject(middleware_wrapper, layer=0)
+            
+            self.endpoint_url = endpoint_url
+            
+            self._chain_id = chain_id or self.eth.chainId
+            
+            self.on_connection_change.emit()
+        except Exception as ex:
+            print(ex)
         
     def disconnect(self):
         # TODO do it nicely in web3?
@@ -152,7 +155,7 @@ class Wallet(QObject):
         return self.network_connector.connected
 
     def has_account(self):
-        return self.private_key is not None
+        return self.account.has_account()
 
     @property
     def account(self):
@@ -180,12 +183,15 @@ class Wallet(QObject):
             "nonce": self.account.transaction_count()
             #"data": data
         }
-        signed = w3.eth.account.signTransaction(t, private_key=web3.Web3.toBytes(hexstr=self.private_key))
-        raw = web3.Web3.toHex(signed.rawTransaction)
-        hash = web3.Web3.toHex(self.network_connector.eth.sendRawTransaction(raw))
-        self.receipt = None
-        self.pending_transaction = Transaction(t["from"], t["to"], t["nonce"], t["value"], t["gas"], t["gasPrice"], hash)
-        self.on_pending_transaction_change.emit()
+        try:
+            signed = w3.eth.account.signTransaction(t, private_key=web3.Web3.toBytes(hexstr=self.private_key))
+            raw = web3.Web3.toHex(signed.rawTransaction)
+            hash = web3.Web3.toHex(self.network_connector.eth.sendRawTransaction(raw))
+            self.receipt = None
+            self.pending_transaction = Transaction(t["from"], t["to"], t["nonce"], t["value"], t["gas"], t["gasPrice"], hash)
+            self.on_pending_transaction_change.emit()
+        except Exception as ex:
+            print(ex)
 		
 	########
     
