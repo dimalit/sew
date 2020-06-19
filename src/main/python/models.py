@@ -1,6 +1,8 @@
 from PyQt5.QtCore import *
 import web3
 from web3.auto import w3
+from pywallet import wallet
+from pywallet.utils import *
 
 class NetworkConnector(QObject):
     
@@ -107,6 +109,94 @@ class AccountHolder(QObject):
         if self.has_account():
             self.on_account_info_change.emit()
 
+class SeedPhraseHolder(QObject):
+    
+    on_connection_change = pyqtSignal()
+    on_params_change     = pyqtSignal()
+    on_network_update    = pyqtSignal()
+    
+    def __init__(self, network_connector, parent = None):
+        QObject.__init__(self, parent)
+        self.network_connector = network_connector
+
+        self.network_connector.on_connection_change.connect(lambda:self.on_connection_change.emit())
+        self.network_connector.on_update.connect(lambda:self.on_network_update.emit())
+        self.on_params_change.connect(self._find_addresses)
+        self.on_connection_change.connect(self._find_addresses)
+
+        try:
+            self.seed_phrase = "bitter age license pair key armed close about profit cruel fun tomato" # wallet.generate_mnemonic()
+        except Exception as ex:
+            pass
+
+        try:
+            self.derivation_path = "m/44'/60'/0'/0"
+        except:
+            pass
+    
+    @property
+    def seed_phrase(self):
+        return self._seed_phrase
+        
+    @seed_phrase.setter
+    def seed_phrase(self, text):
+        self.master_key = HDPrivateKey.master_key_from_mnemonic(text)
+        self._seed_phrase = text
+        self.on_params_change.emit()
+    
+    @property
+    def derivation_path(self):
+        return self._derivation_path
+    
+    @derivation_path.setter
+    def derivation_path(self, text):
+        self.root_keys  = HDKey.from_path(self.master_key, text)
+        self._derivation_path = text
+        self.on_params_change.emit()
+    
+    @property
+    def connected(self):
+        return self.network_connector.connected
+    
+    def _find_addresses(self):
+        
+        self._address_count = 0        
+        
+        if not self.connected:
+            return
+
+        self._need_update = False
+
+        i = 0
+        found_empty = 0
+        while True:
+            addr = self.get_address(i)
+            if self.network_connector.eth.getTransactionCount(addr) == 0:
+                found_empty += 1
+            else:
+                found_empty = 0
+                
+            if found_empty == 2:
+                self._address_count = i+1 - 1
+                break
+
+            i += 1
+    
+    def get_key(self, i):
+        keys = HDKey.from_path(self.root_keys[-1],f'0/{i}')
+        private_key = keys[-1]
+        return private_key._key.to_hex()
+        
+    def get_address(self, i):
+        keys = HDKey.from_path(self.root_keys[-1],f'0/{i}')
+        private_key = keys[-1]
+        address = web3.Web3.toChecksumAddress(private_key.public_key.address())
+        return address
+        
+    def address_count(self):
+        return self._address_count
+    
+
 class Transaction:
     def __init__(self, _from, to, nonce, value = 0, gasLimit = 21000, gasPrice = 0, hash = ""):
         self._from = _from
@@ -147,6 +237,8 @@ class Wallet(QObject):
         self.pending_transaction = None
         self.receipt = None
     
+        self.seed_phrase_holder = SeedPhraseHolder(self.network_connector)
+    
         self.network_connector.on_connection_change.connect(self.on_network_connection_change)
         self.network_connector.on_update.connect(self.on_network_update)
 
@@ -161,9 +253,14 @@ class Wallet(QObject):
     @property
     def account(self):
         return self.account_holder
+        
+    @property
+    def seed(self):
+        return self.seed_phrase_holder
 
     def set_account(self, private_key):
         self.private_key = private_key
+        print(f"PK {private_key}")
         try: 
             address = w3.eth.account.privateKeyToAccount(web3.Web3.toBytes(hexstr=self.private_key)).address
         except:

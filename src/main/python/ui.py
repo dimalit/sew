@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 import web3
 
 class ApplyEditButton(QPushButton):
@@ -116,6 +117,8 @@ class AccountWidget(QGroupBox):
         self.balance_edit = QLineEdit()
         self.transaction_widget = TransactionWidget("Pending Transaction:")
         self.apply_edit_button = ApplyEditButton("Apply", "Change")
+        
+        self.private_key_edit.addAction(self.style().standardIcon(QStyle.SP_ToolBarVerticalExtensionButton), QLineEdit.TrailingPosition)
         
         self.layout.addWidget(QLabel("Private Key:"), 0, 0)
         self.layout.addWidget(self.private_key_edit, 0, 1)
@@ -407,7 +410,112 @@ class ReceiptWidget(QGroupBox):
             self.explorer_link.setText("")
             
             self.setEnabled(False)
+
+class SeedPhraseDialog(QDialog):
+    
+    on_accept = pyqtSignal(int)
+    
+    def __init__(self, parent = None):
+        QDialog.__init__(self, parent)
         
+        self.layout = QGridLayout()
+        
+        self.seed_phrase_edit  = QLineEdit()
+        self.der_path_edit     = QLineEdit()
+        self.addresses_layout  = QVBoxLayout()
+        self.addresses_widget  = QWidget()
+        self.buttons           = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        
+        self.layout.addWidget(QLabel("Seed Phrase:"), 0, 0)
+        self.layout.addWidget(self.seed_phrase_edit, 1, 0, 1, 2)
+        self.seed_phrase_edit.setMinimumWidth(500)
+        self.layout.addWidget(QLabel("Derivation Path:"), 2, 0)
+        self.layout.addWidget(self.der_path_edit, 2, 1)
+        
+        scroll_area = QScrollArea()
+        self.addresses_layout.setSizeConstraint(QLayout.SetFixedSize)
+        self.addresses_widget.setLayout(self.addresses_layout)
+        scroll_area.setWidget(self.addresses_widget)
+        self.layout.addWidget(scroll_area, 3, 0, 1, 2)
+        #self.layout.addWidget(self.addresses_widget, 3, 0, 1, 2)
+        
+        self.layout.addWidget(self.buttons, 4, 0, 1, 2)
+        
+        self.setLayout(self.layout)
+        
+        ########
+        
+        self.seed_phrase_edit.textChanged.connect(self.apply_changes)
+        self.der_path_edit.textChanged.connect(self.apply_changes)
+        self.buttons.accepted.connect(self.accept_choice)
+        self.buttons.rejected.connect(self.reject_choice)
+        
+    ########
+        
+    def apply_changes(self):
+        seed = self.seed_phrase_edit.text()
+        der_path = self.der_path_edit.text()
+        try:
+            self.model.seed_phrase = seed
+            self.model.derivation_path = der_path
+        except Exception as ex:
+            print(str(ex))
+    
+    ########
+    
+    def set_model(self, holder):
+        self.model = holder
+        
+        self.model.on_connection_change.connect(self.show_state)
+        self.model.on_params_change.connect(self.show_params)
+        self.model.on_network_update.connect(self.show_details)
+        
+        self.show_state()
+        
+    def show_state(self):
+        self.show_params()
+
+    def show_params(self):
+        self.seed_phrase_edit.setText(self.model.seed_phrase)
+        self.der_path_edit.setText(self.model.derivation_path)
+        self.show_details()
+        
+    def show_details(self):
+        cnt = self.model.address_count()
+        if cnt == self.addresses_layout.count():
+            return
+        
+        for i in range(cnt):
+            address = self.model.get_address(i)
+            balance = self.model.network_connector.eth.getBalance(address) / 1e18
+            item = QRadioButton(f"{address} ({balance} ETH)")
+            self.addresses_layout.addWidget(item)
+        self.addresses_widget.adjustSize()
+
+    ########
+    
+    @property
+    def current_choice(self):
+        for i in range(self.model.address_count()):
+            if self.addresses_layout.itemAt(i).widget().isChecked():
+                return i
+        return None
+    
+    @current_choice.setter
+    def current_choice(self, ii):
+        for i in range(self.model.address_count()):
+            if i == ii:
+                self.addresses_layout.itemAt(i).widget().setChecked(True)
+            else:
+                self.addresses_layout.itemAt(i).widget().setChecked(False)
+
+    def accept_choice(self):
+        self.on_accept.emit(self.current_choice)
+    
+    def reject_choice(self):
+        self.setVisible(False)
+                
+
 class WalletWidget(QWidget):
     def __init__(self, parent = None):
         QWidget.__init__(self, parent)
@@ -429,3 +537,6 @@ class WalletWidget(QWidget):
         self.layout.addWidget(self.log_widget, 4, 0)
         
         self.setLayout(self.layout)
+        
+        self.seed_dialog = SeedPhraseDialog(self)
+        self.seed_dialog.show()
