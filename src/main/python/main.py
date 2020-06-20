@@ -23,12 +23,12 @@ if __name__ == '__main__':
     wallet_widget.account_widget.connect_wallet(wallet)
     wallet_widget.transaction_widget.connect_wallet(wallet)
     wallet_widget.receipt_widget.connect_wallet(wallet)
-    wallet_widget.seed_dialog.set_model(wallet.seed)
+#    wallet_widget.seed_dialog.set_model(wallet.seed)
     
-    def apply_account(i):
-        wallet.set_account(wallet.seed.get_key(i))
+#    def apply_account(i):
+#        wallet.set_account(wallet.seed.get_key(i))
         
-    wallet_widget.seed_dialog.on_accept.connect(apply_account)
+#    wallet_widget.seed_dialog.on_accept.connect(apply_account)
     
     def print_request(method, params, res):
         print_res = res

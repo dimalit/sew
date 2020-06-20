@@ -117,8 +117,9 @@ class AccountWidget(QGroupBox):
         self.balance_edit = QLineEdit()
         self.transaction_widget = TransactionWidget("Pending Transaction:")
         self.apply_edit_button = ApplyEditButton("Apply", "Change")
+        self.seed_dialog = SeedPhraseDialog(parent)
         
-        self.private_key_edit.addAction(self.style().standardIcon(QStyle.SP_ToolBarVerticalExtensionButton), QLineEdit.TrailingPosition)
+        self.show_seed_dialog_action = self.private_key_edit.addAction(self.style().standardIcon(QStyle.SP_ToolBarVerticalExtensionButton), QLineEdit.TrailingPosition)
         
         self.layout.addWidget(QLabel("Private Key:"), 0, 0)
         self.layout.addWidget(self.private_key_edit, 0, 1)
@@ -142,15 +143,27 @@ class AccountWidget(QGroupBox):
         
         self.apply_edit_button.clicked.connect(self.apply_edit)
         self.private_key_edit.setText('0x1af84ac2809b41314a7454b65f692cabbe39f78007fd0134c0018fbb68c173f0')
+        self.show_seed_dialog_action.triggered.connect(self._show_seed_dialog)
+        self.seed_dialog.on_accept.connect(lambda i: self.private_key_edit.setText(self.wallet.seed.get_key(i)))
         
         ########
         
         self.address_edit.setReadOnly(True)
         self.transaction_count_edit.setReadOnly(True)
         self.balance_edit.setReadOnly(True)
-        
+        self.show_seed_dialog_action.setEnabled(False)
+
+    def _show_seed_dialog(self):
+        choice = -1
+        for i in range(self.wallet.seed.address_count()):
+            if self.wallet.seed.get_key(i) == self.private_key_edit.text():
+                choice = i
+        self.seed_dialog.current_choice = choice
+        self.seed_dialog.show()
+
     def connect_wallet(self, wallet):
         self.wallet = wallet
+        self.seed_dialog.set_model(wallet.seed)
         
         self.wallet.on_connection_change.connect(self.show_state)
         self.wallet.on_account_change.connect(self.show_account)
@@ -171,12 +184,12 @@ class AccountWidget(QGroupBox):
             
             self.private_key_edit.setText(self.wallet.private_key)
             self.address_edit.setText(self.wallet.account.address)
-            self.show_account_data()
         else:
             self.address_edit.setText("")
             self.private_key_edit.setReadOnly(False)
             self.apply_edit_button.setState(self.apply_edit_button.Apply)
-        
+
+        self.show_seed_dialog_action.setEnabled(not self.wallet.has_account())
         self.show_account_data()
         
     def show_account_data(self):
@@ -510,6 +523,7 @@ class SeedPhraseDialog(QDialog):
                 self.addresses_layout.itemAt(i).widget().setChecked(False)
 
     def accept_choice(self):
+        self.setVisible(False)
         self.on_accept.emit(self.current_choice)
     
     def reject_choice(self):
@@ -538,5 +552,3 @@ class WalletWidget(QWidget):
         
         self.setLayout(self.layout)
         
-        self.seed_dialog = SeedPhraseDialog(self)
-        self.seed_dialog.show()
