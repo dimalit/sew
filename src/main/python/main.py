@@ -2,6 +2,9 @@ import ui
 import models
 import time
 
+from asyncqt import QEventLoop
+import asyncio
+
 from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5.QtWidgets import QMainWindow
 
@@ -10,6 +13,11 @@ import sys
 
 if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext
+    
+    loop = QEventLoop(appctxt.app)       # event loop for asyncio
+    asyncio.set_event_loop(loop)
+    
+    
     window = QMainWindow()
     window.setWindowTitle("Simple Ethereum Wallet v0.1")
     
@@ -66,11 +74,16 @@ if __name__ == '__main__':
     
     nc.on_request.connect(log_request)
     
-    nc.connect("https://rpc.goerli.mudit.blog/")
+    nc.connect("https://www.ethercluster.com/etc")
+    #nc.connect("https://rpc.goerli.mudit.blog/")
     #nc.connect("https://main-rpc.linkpool.io")
     #nc.connect("https://nodes.mewapi.io/rpc/eth) #"http://127.0.0.1:1234")
     
     # DEBUG window.setStyleSheet('QWidget:hover{ background-color: #f00; }')
     window.show()
-    exit_code = appctxt.app.exec_()      # 2. Invoke appctxt.app.exec_()
-    sys.exit(exit_code)
+    
+    with loop:
+        sys.exit(loop.run_forever())
+    
+    #exit_code = appctxt.app.exec_()      # 2. Invoke appctxt.app.exec_()
+    #sys.exit(exit_code)

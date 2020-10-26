@@ -1,3 +1,7 @@
+from asyncqt import asyncSlot
+
+import asyncio
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -117,6 +121,8 @@ class AccountWidget(QGroupBox):
         self.balance_edit = QLineEdit()
         self.transaction_widget = TransactionWidget("Pending Transaction:")
         self.apply_edit_button = ApplyEditButton("Apply", "Change")
+        self.test_button = QPushButton("test")
+
         self.seed_dialog = SeedPhraseDialog(parent)
         
         self.show_seed_dialog_action = self.private_key_edit.addAction(self.style().standardIcon(QStyle.SP_ToolBarVerticalExtensionButton), QLineEdit.TrailingPosition)
@@ -135,13 +141,15 @@ class AccountWidget(QGroupBox):
         
         self.layout.addLayout(self.hor_layout, 2, 0, 1, 2)
         
-        self.layout.addWidget(self.apply_edit_button, 0, 2, 3, 1)        
+        self.layout.addWidget(self.apply_edit_button, 0, 2, 2, 1)
+        self.layout.addWidget(self.test_button, 2, 2, 1, 1)
         
         self.setLayout(self.layout)
         
         ########
         
         self.apply_edit_button.clicked.connect(self.apply_edit)
+        self.test_button.clicked.connect(self.test)
         self.private_key_edit.setText('0x1af84ac2809b41314a7454b65f692cabbe39f78007fd0134c0018fbb68c173f0')
         self.show_seed_dialog_action.triggered.connect(self._show_seed_dialog)
         self.seed_dialog.on_accept.connect(lambda i: self.private_key_edit.setText(self.wallet.seed.get_key(i)))
@@ -194,13 +202,21 @@ class AccountWidget(QGroupBox):
         
     def show_account_data(self):
         holder = self.wallet.account
+        
         if holder.has_account():
-            self.transaction_count_edit.setText(str(holder.transaction_count()))
-            self.balance_edit.setText(str(holder.balance()/1e+18))
+            asyncio.ensure_future( holder.coro_transaction_count() ).add_done_callback(lambda fut: self.transaction_count_edit.setText(str(fut.result())))
+            asyncio.ensure_future( holder.coro_balance() ).add_done_callback(lambda fut: self.balance_edit.setText(str(fut.result()/1e+18)))
+            #cnt = await holder.coro_transaction_count()
+            #self.transaction_count_edit.setText(str(cnt))
+            #balance = await holder.coro_balance()
+            #self.balance_edit.setText(str(balance/1e+18))
         else:
             self.transaction_count_edit.setText("")
             self.balance_edit.setText("")
-        
+
+    def test(self):
+        self.show_account_data()    
+
     def apply_edit(self):
         if self.wallet.has_account():
             self.wallet.set_account(None)

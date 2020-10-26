@@ -4,6 +4,9 @@ from web3.auto import w3
 from pywallet import wallet
 from pywallet.utils import *
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
 class NetworkConnector(QObject):
     
     # TODO Why static??!!
@@ -13,6 +16,10 @@ class NetworkConnector(QObject):
     
     def __init__(self, parent = None):
         QObject.__init__(self, parent)
+        
+        self.executor = ThreadPoolExecutor(1)
+        asyncio.get_event_loop().set_default_executor(self.executor)
+        
         self.web3 = web3.Web3()
         
         self.block_number = None    # main indicator of change
@@ -98,8 +105,16 @@ class AccountHolder(QObject):
     def transaction_count(self):
         return self.network_connector.eth.getTransactionCount(self.address)
         
+    async def coro_transaction_count(self):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.network_connector.eth.getTransactionCount, self.address)
+        
     def balance(self):
         return self.network_connector.eth.getBalance(self.address)
+
+    async def coro_balance(self):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.network_connector.eth.getBalance, self.address)
 
     ########
     
@@ -121,8 +136,8 @@ class SeedPhraseHolder(QObject):
 
         self.network_connector.on_connection_change.connect(lambda:self.on_connection_change.emit())
         self.network_connector.on_update.connect(lambda:self.on_network_update.emit())
-        self.on_params_change.connect(self._find_addresses)
-        self.on_connection_change.connect(self._find_addresses)
+        self.on_params_change.connect(self._coro_find_addresses)
+        self.on_connection_change.connect(self._coro_find_addresses)
 
         try:
             self.seed_phrase = "bitter age license pair key armed close about profit cruel fun tomato" # wallet.generate_mnemonic()
@@ -133,6 +148,8 @@ class SeedPhraseHolder(QObject):
             self.derivation_path = "m/44'/60'/0'/0"
         except:
             pass
+        
+        self._address_count = 0
     
     @property
     def seed_phrase(self):
@@ -181,6 +198,9 @@ class SeedPhraseHolder(QObject):
                 break
 
             i += 1
+    
+    async def _coro_find_addresses(self):
+        return await asyncio.run_in_executor(None, self._find_addresses)
     
     def get_key(self, i):
         keys = HDKey.from_path(self.root_keys[-1],f'0/{i}')
