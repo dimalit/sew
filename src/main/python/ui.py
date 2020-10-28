@@ -163,10 +163,10 @@ class AccountWidget(QGroupBox):
 
     def _show_seed_dialog(self):
         choice = -1
-        for i in range(self.wallet.seed.address_count()):
-            if self.wallet.seed.get_key(i) == self.private_key_edit.text():
-                choice = i
-        self.seed_dialog.current_choice = choice
+        #for i in range(self.wallet.seed.address_count()):
+        #    if self.wallet.seed.get_key(i) == self.private_key_edit.text():
+        #        choice = i
+        #self.seed_dialog.current_choice = choice
         self.seed_dialog.show()
 
     def connect_wallet(self, wallet):
@@ -485,8 +485,11 @@ class SeedPhraseDialog(QDialog):
         seed = self.seed_phrase_edit.text()
         der_path = self.der_path_edit.text()
         try:
-            self.model.seed_phrase = seed
-            self.model.derivation_path = der_path
+            # XXX implement comparison inside SeedPhraseHolder class
+            if self.model.seed_phrase != seed:
+                self.model.seed_phrase = seed
+            if self.model.derivation_path != der_path:
+                self.model.derivation_path = der_path
         except Exception as ex:
             print(str(ex))
     
@@ -510,22 +513,34 @@ class SeedPhraseDialog(QDialog):
         self.show_details()
         
     def show_details(self):
-        cnt = self.model.address_count()
-        if cnt == self.addresses_layout.count():
+        print("2")
+        while self.addresses_layout.count() > 0:
+            self.addresses_layout.takeAt(0)
+
+        if not self.model or not self.model.connected:
+            print("/2")
             return
         
-        for i in range(cnt):
-            address = self.model.get_address(i)
-            balance = self.model.network_connector.eth.getBalance(address) / 1e18
-            item = QRadioButton(f"{address} ({balance} ETH)")
+        cnt = 0
+        while True:
+            address = self.model.get_address(cnt)
+            #balance = self.model.get_balance(cnt) / 1e18
+            item = QRadioButton(f"{address}")
             self.addresses_layout.addWidget(item)
+            fut = asyncio.ensure_future( self.model.coro_get_balance(cnt) )
+            fut.add_done_callback( lambda fut, item=item, address=address: item.setText(f"{address} ({fut.result()/1e18} ETH)"))
+            cnt += 1
+            if cnt == 3:
+                break
+
         self.addresses_widget.adjustSize()
+        print("/2")
 
     ########
     
     @property
     def current_choice(self):
-        for i in range(self.model.address_count()):
+        for i in range(self.addresses_layout.count()):
             if self.addresses_layout.itemAt(i).widget().isChecked():
                 return i
         return None

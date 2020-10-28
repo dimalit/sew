@@ -74,10 +74,10 @@ if __name__ == '__main__':
     
     nc.on_request.connect(log_request)
     
-    nc.connect("https://www.ethercluster.com/etc")
+    #nc.connect("https://www.ethercluster.com/etc")
     #nc.connect("https://rpc.goerli.mudit.blog/")
     #nc.connect("https://main-rpc.linkpool.io")
-    #nc.connect("https://nodes.mewapi.io/rpc/eth) #"http://127.0.0.1:1234")
+    nc.connect("https://nodes.mewapi.io/rpc/eth") #"http://127.0.0.1:1234")
     
     # DEBUG window.setStyleSheet('QWidget:hover{ background-color: #f00; }')
     window.show()

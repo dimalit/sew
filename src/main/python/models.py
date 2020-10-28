@@ -16,8 +16,8 @@ class NetworkConnector(QObject):
     
     def __init__(self, parent = None):
         QObject.__init__(self, parent)
-        
-        self.executor = ThreadPoolExecutor(1)
+       
+        self.executor = ThreadPoolExecutor(10)
         asyncio.get_event_loop().set_default_executor(self.executor)
         
         self.web3 = web3.Web3()
@@ -32,10 +32,15 @@ class NetworkConnector(QObject):
     def timer_handler(self):
         if not self.connected:
             return
-        block_number = self.eth.blockNumber
-        if self.block_number != block_number:
-            self.block_number = block_number
-            self.on_update.emit()
+        #block_number = self.eth.blockNumber
+        loop = asyncio.get_event_loop()
+        coro = loop.run_in_executor(None, lambda: self.eth.blockNumber)
+        def cb(fut):
+            block_number = fut.result()
+            if self.block_number != block_number:
+                self.block_number = block_number
+                self.on_update.emit()
+        asyncio.ensure_future(coro).add_done_callback(cb)
 
     def connect(self, endpoint_url, chain_id = None):
         # TODO why it's still 'connected' even if error?
@@ -121,8 +126,10 @@ class AccountHolder(QObject):
     def on_network_connection_change(self):
         self.on_state_change.emit()
     def on_network_update(self):
+        print("1")
         if self.has_account():
             self.on_account_info_change.emit()
+        print("/1")
 
 class SeedPhraseHolder(QObject):
     
@@ -136,8 +143,6 @@ class SeedPhraseHolder(QObject):
 
         self.network_connector.on_connection_change.connect(lambda:self.on_connection_change.emit())
         self.network_connector.on_update.connect(lambda:self.on_network_update.emit())
-        self.on_params_change.connect(self._coro_find_addresses)
-        self.on_connection_change.connect(self._coro_find_addresses)
 
         try:
             self.seed_phrase = "bitter age license pair key armed close about profit cruel fun tomato" # wallet.generate_mnemonic()
@@ -167,6 +172,8 @@ class SeedPhraseHolder(QObject):
     
     @derivation_path.setter
     def derivation_path(self, text):
+        #if self._derivation_path == text:
+        #    return
         self.root_keys  = HDKey.from_path(self.master_key, text)
         self._derivation_path = text
         self.on_params_change.emit()
@@ -203,6 +210,7 @@ class SeedPhraseHolder(QObject):
         return await asyncio.run_in_executor(None, self._find_addresses)
     
     def get_key(self, i):
+        print(f"get key {i}")
         keys = HDKey.from_path(self.root_keys[-1],f'0/{i}')
         private_key = keys[-1]
         return private_key._key.to_hex()
@@ -215,6 +223,13 @@ class SeedPhraseHolder(QObject):
         
     def address_count(self):
         return self._address_count
+        
+    def get_balance(self, i):
+        return self.network_connector.eth.getBalance(self.get_address(i))
+        
+    async def coro_get_balance(self, i):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.get_balance, i)
     
 
 class Transaction:
@@ -317,6 +332,7 @@ class Wallet(QObject):
         self.on_connection_change.emit()
         
     def on_network_update(self):
+        print("3")
         if self.pending_transaction and not self.receipt:
             try:
                 r = self.network_connector.eth.getTransactionReceipt(self.pending_transaction.hash)
@@ -324,3 +340,4 @@ class Wallet(QObject):
                 self.on_pending_transaction_change.emit()
             except:
                 pass
+        print("/3")
